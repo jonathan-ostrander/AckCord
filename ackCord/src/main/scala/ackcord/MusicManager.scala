@@ -59,16 +59,19 @@ object MusicManager {
       apply(cache, players.updated(guildId, (usedPlayer, actor)))
 
     case (_, DisconnectFromChannel(guildId, destroyPlayer)) =>
-      players.get(guildId).foreach {
-        case (player, actor) =>
+      players.get(guildId) match {
+        case Some((player, actor)) =>
           actor ! LavaplayerHandler.DisconnectVoiceChannel
 
           if (destroyPlayer) {
             player.destroy()
+            actor ! LavaplayerHandler.Shutdown
+            apply(cache, players - guildId)
+          } else {
+            Behaviors.same
           }
+        case None => Behaviors.same
       }
-
-      apply(cache, players - guildId)
 
     case (_, SetChannelPlaying(guildId, playing)) =>
       players.get(guildId).foreach {
